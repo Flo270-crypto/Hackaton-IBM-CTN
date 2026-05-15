@@ -16,7 +16,7 @@ export default function ImpactAnalyzer() {
 
   const fetchGraph = async () => {
     try {
-      const workspacePath = import.meta.env.VITE_WORKSPACE_PATH || process.cwd();
+      const workspacePath = import.meta.env.VITE_WORKSPACE_PATH || '';
       const data = await api.analyze(workspacePath);
       setGraph(data);
     } catch (err) {
@@ -26,7 +26,7 @@ export default function ImpactAnalyzer() {
 
   const analyzeImpact = async (e) => {
     e.preventDefault();
-    
+
     if (!filename.trim()) {
       setError('Please enter a filename');
       return;
@@ -39,11 +39,11 @@ export default function ImpactAnalyzer() {
 
     setLoading(true);
     setError(null);
-    
+
     try {
       const data = await api.impact(filename.trim(), graph);
       setAffectedModules(data.affected_modules || []);
-      
+
       if (data.affected_modules.length === 0) {
         setError('No affected modules found. File may not exist in the dependency graph.');
       }
@@ -56,7 +56,7 @@ export default function ImpactAnalyzer() {
   };
 
   const getRiskColor = (risk) => {
-    switch(risk) {
+    switch (risk) {
       case 'HIGH': return 'bg-red-500';
       case 'MEDIUM': return 'bg-orange-500';
       case 'LOW': return 'bg-green-500';
@@ -65,7 +65,7 @@ export default function ImpactAnalyzer() {
   };
 
   const getTypeIcon = (type) => {
-    switch(type) {
+    switch (type) {
       case 'changed': return '🔴';
       case 'direct': return '🟠';
       case 'indirect': return '🟡';

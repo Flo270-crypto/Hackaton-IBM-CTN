@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
-import ReactFlow, { 
-  Background, 
-  Controls, 
+import ReactFlow, {
+  Background,
+  Controls,
   MiniMap,
   useNodesState,
   useEdgesState
@@ -11,7 +11,7 @@ import { AlertCircle, Loader2 } from 'lucide-react';
 import { api } from '../services/api';
 
 const nodeColor = (risk) => {
-  switch(risk) {
+  switch (risk) {
     case 'HIGH': return '#ef4444'; // red-500
     case 'MEDIUM': return '#f97316'; // orange-500
     case 'LOW': return '#22c55e'; // green-500
@@ -34,22 +34,22 @@ export default function ArchitectureDiagram() {
   const fetchArchitecture = async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
-      const workspacePath = import.meta.env.VITE_WORKSPACE_PATH || process.cwd();
+      const workspacePath = import.meta.env.VITE_WORKSPACE_PATH || '';
       const data = await api.analyze(workspacePath);
-      
+
       // Transform nodes for React Flow
       const flowNodes = data.nodes.map((node, index) => ({
         id: node.id,
-        data: { 
+        data: {
           label: node.label,
           risk: node.risk,
           fullPath: node.id
         },
-        position: { 
-          x: (index % 3) * 200 + 50, 
-          y: Math.floor(index / 3) * 150 + 50 
+        position: {
+          x: (index % 3) * 200 + 50,
+          y: Math.floor(index / 3) * 150 + 50
         },
         style: {
           background: nodeColor(node.risk),
@@ -145,7 +145,7 @@ export default function ArchitectureDiagram() {
       >
         <Background color="#4b5563" gap={16} />
         <Controls className="bg-gray-800 border border-gray-700" />
-        <MiniMap 
+        <MiniMap
           nodeColor={(node) => nodeColor(node.data.risk)}
           className="bg-gray-800 border border-gray-700"
         />
@@ -158,7 +158,7 @@ export default function ArchitectureDiagram() {
           <div className="flex items-start justify-between mb-2">
             <h3 className="font-semibold text-white text-sm">{selectedNode.data.label}</h3>
             <span className={`px-2 py-1 rounded text-xs font-medium ml-2
-              ${selectedNode.data.risk === 'HIGH' ? 'bg-red-500' : 
+              ${selectedNode.data.risk === 'HIGH' ? 'bg-red-500' :
                 selectedNode.data.risk === 'MEDIUM' ? 'bg-orange-500' : 'bg-green-500'} 
               text-white`}>
               {selectedNode.data.risk}
