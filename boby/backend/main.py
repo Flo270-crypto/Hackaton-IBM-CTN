@@ -7,6 +7,8 @@ from pathlib import Path
 
 from analyzer import scan_repository
 from git_tracker import get_git_history
+import bob_client
+import push_guardian
 
 
 app = FastAPI(title="Boby - Code Analysis Backend")
@@ -32,31 +34,22 @@ class ImpactRequest(BaseModel):
 
 
 class ChecklistRequest(BaseModel):
-    repo_context: str
+    repo_context: Dict
 
 
 class HistoryRequest(BaseModel):
     repo_path: str
 
 
-class AnalyzeResponse(BaseModel):
-    nodes: List[Dict]
-    edges: List[Dict]
+class PushGuardianRequest(BaseModel):
+    repo_path: str
 
 
-class ImpactResponse(BaseModel):
-    affected_modules: List[Dict]
+class MergeIntelligenceRequest(BaseModel):
+    repo_path: str
+    target_branch: str
 
 
-class ChecklistResponse(BaseModel):
-    done: List[str]
-    todo: List[str]
-    suggestions: List[str]
-
-
-class HistoryResponse(BaseModel):
-    commits: List[Dict]
-    most_modified_files: List[Dict]
 
 
 @app.get("/")
@@ -69,16 +62,16 @@ def read_root():
     }
 
 
-@app.post("/analyze", response_model=AnalyzeResponse)
-def analyze_repository(request: AnalyzeRequest):
+@app.post("/analyze")
+async def analyze_repository(request: AnalyzeRequest):
     """
-    Analyzes a repository and returns a dependency graph.
+    Analyzes a repository and returns an enriched dependency graph with AI insights.
     
     Args:
         request: Contains repo_path
         
     Returns:
-        Dependency graph with nodes and edges
+        Dependency graph with nodes, edges, and AI-generated critical file analysis
     """
     repo_path = request.repo_path
     
@@ -90,62 +83,70 @@ def analyze_repository(request: AnalyzeRequest):
         raise HTTPException(status_code=400, detail=f"Path is not a directory: {repo_path}")
     
     try:
+        # Scan repository to get dependency graph
         graph = scan_repository(repo_path)
-        return AnalyzeResponse(
-            nodes=graph["nodes"],
-            edges=graph["edges"]
-        )
+        
+        # Build file tree
+        file_tree = build_file_tree(repo_path)
+        
+        # Get AI analysis of architecture
+        ai_analysis = await bob_client.analyze_architecture(file_tree, graph)
+        
+        # Return enriched result
+        return {
+            "nodes": graph["nodes"],
+            "edges": graph["edges"],
+            "ai_analysis": ai_analysis
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error analyzing repository: {str(e)}")
 
 
-@app.post("/impact", response_model=ImpactResponse)
-def analyze_impact(request: ImpactRequest):
+@app.post("/impact")
+async def analyze_impact(request: ImpactRequest):
     """
-    Analyzes the impact of changes to a file.
+    Analyzes the impact of changes to a file using AI.
     
     Args:
         request: Contains changed_file and graph
         
     Returns:
-        List of affected modules with risk levels
+        AI-generated impact analysis with affected modules and recommendations
     """
     changed_file = request.changed_file
     graph = request.graph
     
     try:
-        affected_modules = calculate_impact(changed_file, graph)
-        return ImpactResponse(affected_modules=affected_modules)
+        # Get AI-powered impact prediction
+        impact_result = await bob_client.predict_impact(changed_file, graph)
+        return impact_result
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error calculating impact: {str(e)}")
 
 
-@app.post("/checklist", response_model=ChecklistResponse)
-def generate_checklist(request: ChecklistRequest):
+@app.post("/checklist")
+async def generate_checklist(request: ChecklistRequest):
     """
-    Generates a testing checklist based on repository context.
+    Generates an AI-powered testing checklist based on repository context.
     
     Args:
         request: Contains repo_context
         
     Returns:
-        Checklist with done, todo, and suggestions
+        AI-generated checklist with done, todo, and suggestions
     """
     repo_context = request.repo_context
     
     try:
-        checklist = create_checklist(repo_context)
-        return ChecklistResponse(
-            done=checklist["done"],
-            todo=checklist["todo"],
-            suggestions=checklist["suggestions"]
-        )
+        # Get AI-generated checklist
+        checklist = await bob_client.generate_checklist(repo_context)
+        return checklist
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error generating checklist: {str(e)}")
 
 
-@app.post("/history", response_model=HistoryResponse)
-def get_repository_history(request: HistoryRequest):
+@app.post("/history")
+async def get_repository_history(request: HistoryRequest):
     """
     Gets Git history for a repository.
     
@@ -167,135 +168,114 @@ def get_repository_history(request: HistoryRequest):
         if "error" in history:
             raise HTTPException(status_code=400, detail=history["error"])
         
-        return HistoryResponse(
-            commits=history["commits"],
-            most_modified_files=history["most_modified_files"]
-        )
+        return {
+            "commits": history["commits"],
+            "most_modified_files": history["most_modified_files"]
+        }
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error getting repository history: {str(e)}")
 
 
+@app.post("/push-guardian")
+async def push_guardian_check(request: PushGuardianRequest):
+    """
+    Analyzes repository before push to identify risks and missing items.
+    
+    Args:
+        request: Contains repo_path
+        
+    Returns:
+        AI-powered analysis with status, risks, missing items, and recommendation
+    """
+    repo_path = request.repo_path
+    
+    # Validate path
+    if not os.path.exists(repo_path):
+        raise HTTPException(status_code=404, detail=f"Repository path not found: {repo_path}")
+    
+    if not os.path.isdir(repo_path):
+        raise HTTPException(status_code=400, detail=f"Path is not a directory: {repo_path}")
+    
+    try:
+        result = await push_guardian.analyze_before_push(repo_path)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error analyzing push: {str(e)}")
+
+
+@app.post("/merge-intelligence")
+async def merge_intelligence_check(request: MergeIntelligenceRequest):
+    """
+    Analyzes potential merge conflicts between current branch and target branch.
+    
+    Args:
+        request: Contains repo_path and target_branch
+        
+    Returns:
+        AI-powered analysis with conflicts, severity, resolution steps, and merge safety
+    """
+    repo_path = request.repo_path
+    target_branch = request.target_branch
+    
+    # Validate path
+    if not os.path.exists(repo_path):
+        raise HTTPException(status_code=404, detail=f"Repository path not found: {repo_path}")
+    
+    if not os.path.isdir(repo_path):
+        raise HTTPException(status_code=400, detail=f"Path is not a directory: {repo_path}")
+    
+    try:
+        result = await push_guardian.analyze_merge_conflicts(repo_path, target_branch)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error analyzing merge: {str(e)}")
+
+
 # Helper Functions
 
-def calculate_impact(changed_file: str, graph: Dict) -> List[Dict]:
+def build_file_tree(repo_path: str) -> Dict:
     """
-    Calculates which modules are affected by changes to a file.
+    Builds a file tree structure for the repository.
     
     Args:
-        changed_file: Path to the changed file
-        graph: Dependency graph
+        repo_path: Path to the repository root
         
     Returns:
-        List of affected modules with risk levels
+        Dictionary representing the file tree structure
     """
-    affected = []
-    edges = graph.get("edges", [])
-    nodes = graph.get("nodes", [])
-    
-    # Create a map of node IDs to nodes
-    node_map = {node["id"]: node for node in nodes}
-    
-    # Find all files that depend on the changed file (direct dependencies)
-    direct_dependents = set()
-    for edge in edges:
-        if edge["target"] == changed_file:
-            direct_dependents.add(edge["source"])
-    
-    # Find indirect dependencies (files that depend on direct dependents)
-    indirect_dependents = set()
-    for dependent in direct_dependents:
-        for edge in edges:
-            if edge["target"] == dependent and edge["source"] not in direct_dependents:
-                indirect_dependents.add(edge["source"])
-    
-    # Add the changed file itself
-    if changed_file in node_map:
-        affected.append({
-            "file": changed_file,
-            "risk": "HIGH",
-            "reason": "Modified file",
-            "type": "changed"
-        })
-    
-    # Add direct dependents
-    for file_id in direct_dependents:
-        if file_id in node_map:
-            node = node_map[file_id]
-            affected.append({
-                "file": file_id,
-                "risk": "HIGH" if node.get("risk") == "HIGH" else "MEDIUM",
-                "reason": "Direct dependency",
-                "type": "direct"
-            })
-    
-    # Add indirect dependents
-    for file_id in indirect_dependents:
-        if file_id in node_map:
-            node = node_map[file_id]
-            affected.append({
-                "file": file_id,
-                "risk": "MEDIUM" if node.get("risk") == "HIGH" else "LOW",
-                "reason": "Indirect dependency",
-                "type": "indirect"
-            })
-    
-    return affected
-
-
-def create_checklist(repo_context: str) -> Dict:
-    """
-    Creates a testing checklist based on repository context.
-    
-    Args:
-        repo_context: Context about the repository
-        
-    Returns:
-        Dictionary with done, todo, and suggestions lists
-    """
-    # Parse repo context to generate intelligent checklist
-    # This is a simplified version - can be enhanced with AI/ML
-    
-    done = []
-    todo = []
-    suggestions = []
-    
-    # Basic checklist items based on common patterns
-    if "test" in repo_context.lower():
-        done.append("Test files exist")
-    else:
-        todo.append("Add test coverage")
-        suggestions.append("Consider adding unit tests for critical modules")
-    
-    if "readme" in repo_context.lower():
-        done.append("Documentation exists")
-    else:
-        todo.append("Add README documentation")
-        suggestions.append("Document API endpoints and setup instructions")
-    
-    # Standard testing checklist
-    todo.extend([
-        "Run unit tests",
-        "Test API endpoints",
-        "Verify error handling",
-        "Check edge cases",
-        "Review code changes"
-    ])
-    
-    suggestions.extend([
-        "Test with different input scenarios",
-        "Verify backward compatibility",
-        "Check performance impact",
-        "Review security implications",
-        "Update integration tests"
-    ])
-    
-    return {
-        "done": done,
-        "todo": todo,
-        "suggestions": suggestions
+    file_tree = {
+        "name": os.path.basename(repo_path),
+        "path": repo_path,
+        "type": "directory",
+        "children": []
     }
+    
+    # Supported file extensions
+    extensions = {'.js', '.ts', '.jsx', '.tsx', '.py', '.json', '.md'}
+    
+    # Walk through the repository
+    for root, dirs, files in os.walk(repo_path):
+        # Skip common directories
+        dirs[:] = [d for d in dirs if d not in {'.git', 'node_modules', '__pycache__', 'venv', '.venv', 'dist', 'build'}]
+        
+        relative_root = os.path.relpath(root, repo_path)
+        if relative_root == '.':
+            relative_root = ''
+        
+        for file in files:
+            file_path = Path(root) / file
+            if file_path.suffix in extensions:
+                relative_path = str(file_path.relative_to(repo_path))
+                file_tree["children"].append({
+                    "name": file,
+                    "path": relative_path,
+                    "type": "file",
+                    "extension": file_path.suffix
+                })
+    
+    return file_tree
 
 
 if __name__ == "__main__":

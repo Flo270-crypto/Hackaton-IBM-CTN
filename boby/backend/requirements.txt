@@ -5,3 +5,6 @@ gitpython==3.1.41
 httpx==0.26.0
 python-multipart==0.0.6
 pydantic==2.5.3
+ibm-watsonx-ai==1.0.0
+python-dotenv==1.0.0python-dotenv
+ibm-watsonx-ai
