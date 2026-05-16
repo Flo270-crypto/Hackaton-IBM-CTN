@@ -1,9 +1,11 @@
 import { useState } from 'react';
-import { X, Sparkles, ArrowLeft, Network, CheckSquare, Target, GitBranch, Shield, GitMerge } from 'lucide-react';
+import { X, Bot, ArrowLeft, Network, CheckSquare, Target, GitBranch, Shield, GitMerge } from 'lucide-react';
 import ArchitectureDiagram from './ArchitectureDiagram';
 import SmartChecklist from './SmartChecklist';
 import ImpactAnalyzer from './ImpactAnalyzer';
 import HistoryTracker from './HistoryTracker';
+import PushGuardian from './PushGuardian';
+import MergeIntelligence from './MergeIntelligence';
 
 export default function FloatingWidget() {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -14,49 +16,37 @@ export default function FloatingWidget() {
       id: 'architecture',
       label: 'Architecture',
       icon: Network,
-      gradient: 'from-purple-600 to-purple-800',
-      hoverGradient: 'hover:from-purple-500 hover:to-purple-700',
       component: ArchitectureDiagram
     },
     {
       id: 'checklist',
       label: 'Checklist',
       icon: CheckSquare,
-      gradient: 'from-green-600 to-green-800',
-      hoverGradient: 'hover:from-green-500 hover:to-green-700',
       component: SmartChecklist
     },
     {
       id: 'impact',
       label: 'Impact',
       icon: Target,
-      gradient: 'from-orange-600 to-orange-800',
-      hoverGradient: 'hover:from-orange-500 hover:to-orange-700',
       component: ImpactAnalyzer
     },
     {
       id: 'history',
       label: 'History',
       icon: GitBranch,
-      gradient: 'from-blue-600 to-blue-800',
-      hoverGradient: 'hover:from-blue-500 hover:to-blue-700',
       component: HistoryTracker
     },
     {
       id: 'guardian',
       label: 'Push Guardian',
       icon: Shield,
-      gradient: 'from-red-600 to-red-800',
-      hoverGradient: 'hover:from-red-500 hover:to-red-700',
-      component: () => <ComingSoon title="Push Guardian" />
+      component: PushGuardian
     },
     {
       id: 'merge',
       label: 'Merge Intelligence',
       icon: GitMerge,
-      gradient: 'from-teal-600 to-teal-800',
-      hoverGradient: 'hover:from-teal-500 hover:to-teal-700',
-      component: () => <ComingSoon title="Merge Intelligence" />
+      component: MergeIntelligence
     }
   ];
 
@@ -68,43 +58,44 @@ export default function FloatingWidget() {
     setActiveModule(null);
   };
 
-  const ActiveComponent = activeModule 
-    ? modules.find(m => m.id === activeModule)?.component 
+  const ActiveComponent = activeModule
+    ? modules.find(m => m.id === activeModule)?.component
     : null;
 
   return (
     <div className="fixed bottom-5 right-5 z-50">
       {!isExpanded ? (
-        // Collapsed button - 60x60px circular with purple gradient and sparkles icon
         <button
           onClick={() => setIsExpanded(true)}
-          className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-600 to-purple-800 
-                     shadow-2xl hover:scale-110 transition-all duration-300 
-                     flex items-center justify-center group"
+          className="w-14 h-14 rounded-lg bg-slate-800 border border-slate-700
+                     hover:bg-slate-700 hover:border-slate-600
+                     transition-all duration-200
+                     flex items-center justify-center shadow-lg"
           aria-label="Open Boby Assistant"
         >
-          <Sparkles className="w-8 h-8 text-white group-hover:rotate-12 transition-transform duration-300" />
+          <Bot className="w-6 h-6 text-slate-300" />
         </button>
       ) : (
-        // Expanded panel - 420x580px
-        <div className="w-[420px] h-[580px] bg-gray-900 border border-purple-700 
-                        rounded-2xl shadow-2xl widget-transition 
-                        flex flex-col overflow-hidden">
+        <div className={`bg-slate-900 border border-slate-700 shadow-2xl
+                        rounded-lg transition-all duration-200
+                        flex flex-col overflow-hidden
+                        ${activeModule === 'architecture' ? 'w-[90vw] h-[90vh] max-w-[1400px] max-h-[900px]' : 'w-[420px] h-[560px]'}`}>
+          
           {/* Header */}
-          <div className="flex items-center justify-between p-4 border-b border-purple-700 bg-gray-800">
+          <div className="flex items-center justify-between px-4 py-3 bg-slate-800 border-b border-slate-700">
             {activeModule ? (
               <button
                 onClick={handleBack}
-                className="flex items-center gap-2 text-purple-400 hover:text-purple-300 
-                           transition-colors"
+                className="flex items-center gap-2 text-slate-400 hover:text-slate-200
+                           transition-colors text-sm"
               >
-                <ArrowLeft className="w-5 h-5" />
-                <span className="font-medium">Back</span>
+                <ArrowLeft className="w-4 h-4" />
+                <span>Back</span>
               </button>
             ) : (
               <div className="flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-purple-400" />
-                <h2 className="text-white font-semibold">Boby Assistant</h2>
+                <Bot className="w-5 h-5 text-slate-400" />
+                <h2 className="text-slate-200 font-medium text-sm">Boby Assistant</h2>
               </div>
             )}
             <button
@@ -112,38 +103,35 @@ export default function FloatingWidget() {
                 setIsExpanded(false);
                 setActiveModule(null);
               }}
-              className="p-1.5 hover:bg-gray-700 rounded-lg transition-colors"
-              aria-label="Close Boby Assistant"
+              className="p-1 hover:bg-slate-700 rounded transition-colors"
+              aria-label="Close"
             >
-              <X className="w-5 h-5 text-gray-400 hover:text-white" />
+              <X className="w-4 h-4 text-slate-400 hover:text-slate-200" />
             </button>
           </div>
 
           {/* Content */}
-          <div className="flex-1 overflow-auto p-4">
+          <div className="flex-1 overflow-hidden">
             {activeModule ? (
-              // Module view
-              <div className="h-full tab-content">
+              <div className="h-full overflow-auto">
                 {ActiveComponent && <ActiveComponent />}
               </div>
             ) : (
-              // Home grid - 2x3 cards
-              <div className="grid grid-cols-2 gap-4 h-full content-start">
+              <div className="grid grid-cols-2 gap-3 p-4 content-start">
                 {modules.map((module) => {
                   const Icon = module.icon;
                   return (
                     <button
                       key={module.id}
                       onClick={() => handleModuleClick(module.id)}
-                      className={`aspect-square rounded-xl bg-gradient-to-br ${module.gradient} 
-                                ${module.hoverGradient}
-                                shadow-lg hover:shadow-xl hover:scale-105 
-                                transition-all duration-300 
-                                flex flex-col items-center justify-center gap-3 p-4
-                                border border-white/10`}
+                      className="bg-slate-800 border border-blue-900/50
+                               hover:bg-blue-900/30 hover:border-blue-700/50
+                               rounded-lg transition-all duration-200
+                               flex flex-col items-center justify-center gap-2 p-4
+                               h-28"
                     >
-                      <Icon className="w-12 h-12 text-white" />
-                      <span className="text-white font-medium text-sm text-center">
+                      <Icon className="w-6 h-6 text-blue-400" />
+                      <span className="text-slate-300 text-xs font-medium text-center">
                         {module.label}
                       </span>
                     </button>
@@ -154,23 +142,6 @@ export default function FloatingWidget() {
           </div>
         </div>
       )}
-    </div>
-  );
-}
-
-// Coming Soon placeholder component
-function ComingSoon({ title }) {
-  return (
-    <div className="flex flex-col items-center justify-center h-full text-center p-8">
-      <div className="w-20 h-20 rounded-full bg-gradient-to-br from-purple-600 to-purple-800 
-                      flex items-center justify-center mb-6">
-        <Sparkles className="w-10 h-10 text-white" />
-      </div>
-      <h3 className="text-2xl font-bold text-white mb-3">{title}</h3>
-      <p className="text-gray-400 text-lg mb-2">Coming Soon</p>
-      <p className="text-gray-500 text-sm max-w-xs">
-        This feature is currently under development and will be available in a future update.
-      </p>
     </div>
   );
 }

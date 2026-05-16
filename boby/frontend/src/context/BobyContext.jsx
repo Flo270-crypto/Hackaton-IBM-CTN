@@ -19,8 +19,9 @@ export const BobyProvider = ({ children }) => {
   const fetchGraph = async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
+      // Use demo-repo for consistent testing
       const repoPath = './demo-repo';
       const data = await api.analyze(repoPath);
       setGraph(data);

@@ -19,7 +19,7 @@ WATSONX_PROJECT_ID = os.getenv("WATSONX_PROJECT_ID")
 WATSONX_URL = os.getenv("WATSONX_URL", "https://us-south.ml.cloud.ibm.com")
 
 # Model configuration
-MODEL_ID = "ibm/granite-13b-instruct-v2"
+MODEL_ID = "meta-llama/llama-3-3-70b-instruct"
 
 # Initialize API client
 credentials = {

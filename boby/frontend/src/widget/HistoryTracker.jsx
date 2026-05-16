@@ -15,8 +15,9 @@ export default function HistoryTracker() {
   const fetchHistory = async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
+      // Use demo-repo for consistent testing
       const repoPath = './demo-repo';
       const data = await api.history(repoPath);
       setCommits(data.commits || []);
@@ -34,7 +35,7 @@ export default function HistoryTracker() {
     const diffMs = now - date;
     const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
     const diffDays = Math.floor(diffHours / 24);
-    
+
     if (diffHours < 1) {
       return 'Just now';
     } else if (diffHours < 24) {
@@ -42,10 +43,10 @@ export default function HistoryTracker() {
     } else if (diffDays < 7) {
       return `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`;
     } else {
-      return date.toLocaleDateString('en-US', { 
-        month: 'short', 
-        day: 'numeric', 
-        year: 'numeric' 
+      return date.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
       });
     }
   };
@@ -169,11 +170,10 @@ export default function HistoryTracker() {
                           return (
                             <div
                               key={fileIndex}
-                              className={`text-xs px-2 py-1 rounded truncate ${
-                                isHighFrequency 
-                                  ? 'bg-orange-900/30 text-orange-300' 
-                                  : 'bg-gray-900 text-gray-400'
-                              }`}
+                              className={`text-xs px-2 py-1 rounded truncate ${isHighFrequency
+                                ? 'bg-orange-900/30 text-orange-300'
+                                : 'bg-gray-900 text-gray-400'
+                                }`}
                               title={file}
                             >
                               {isHighFrequency && '🔥 '}

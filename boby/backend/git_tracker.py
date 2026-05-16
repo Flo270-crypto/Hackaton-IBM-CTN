@@ -16,7 +16,7 @@ def get_git_history(repo_path: str) -> Dict:
         Dictionary with commits and most modified files
     """
     try:
-        repo = Repo(repo_path)
+        repo = Repo(repo_path, search_parent_directories=True)
     except InvalidGitRepositoryError:
         return {
             "commits": [],

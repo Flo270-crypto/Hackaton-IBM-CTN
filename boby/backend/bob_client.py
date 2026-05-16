@@ -14,7 +14,7 @@ WATSONX_PROJECT_ID = os.getenv("WATSONX_PROJECT_ID")
 WATSONX_URL = os.getenv("WATSONX_URL", "https://us-south.ml.cloud.ibm.com")
 
 # Model configuration
-MODEL_ID = "ibm/granite-8b-code-instruct"
+MODEL_ID = "meta-llama/llama-3-3-70b-instruct"
 
 # Initialize API client
 credentials = {
@@ -42,7 +42,7 @@ def _get_model_inference():
 
 def _extract_json_from_response(response_text: str) -> dict:
     """
-    Extract JSON from response text, handling markdown code blocks.
+    Extract JSON from response text, handling markdown code blocks and extra text.
     
     Args:
         response_text: Raw response text from the model
@@ -64,8 +64,31 @@ def _extract_json_from_response(response_text: str) -> dict:
     
     text = text.strip()
     
+    # Try to find JSON object boundaries
+    # Look for the first { and last }
+    start_idx = text.find('{')
+    if start_idx == -1:
+        raise ValueError("No JSON object found in response")
+    
+    # Find the matching closing brace
+    brace_count = 0
+    end_idx = -1
+    for i in range(start_idx, len(text)):
+        if text[i] == '{':
+            brace_count += 1
+        elif text[i] == '}':
+            brace_count -= 1
+            if brace_count == 0:
+                end_idx = i + 1
+                break
+    
+    if end_idx == -1:
+        raise ValueError("No complete JSON object found in response")
+    
+    json_text = text[start_idx:end_idx]
+    
     # Parse JSON
-    return json.loads(text)
+    return json.loads(json_text)
 
 
 async def analyze_architecture(file_tree: dict, dependency_graph: dict) -> dict:
@@ -104,8 +127,13 @@ Identify critical files and assign risk scores (0-100) based on:
 - Complexity and centrality in the architecture
 - Potential impact if modified
 
-Return ONLY a valid JSON object (no markdown, no code blocks) in this exact format:
+Also automatically identify the overarching architecture pattern and the key technologies/frameworks used.
+
+Return ONLY a valid JSON object (no markdown, no code blocks) in this exact format, with no extra text or explanations:
 {{
+  "technologies": ["React", "FastAPI"],
+  "architecture_pattern": "Client-Server",
+  "global_implications": "Overview of the global architecture...",
   "critical_files": [
     {{
       "file": "path/to/file",
@@ -119,7 +147,6 @@ Return ONLY a valid JSON object (no markdown, no code blocks) in this exact form
         result = _extract_json_from_response(response)
         
         return result
-        
     except json.JSONDecodeError as e:
         return {
             "error": f"Failed to parse JSON response: {str(e)}",
@@ -132,7 +159,7 @@ Return ONLY a valid JSON object (no markdown, no code blocks) in this exact form
         }
 
 
-async def generate_checklist(repo_context: dict) -> dict:
+async def generate_checklist(repo_context: str) -> dict:
     """
     Generate a testing checklist based on repository context.
     
@@ -153,7 +180,7 @@ async def generate_checklist(repo_context: dict) -> dict:
         prompt = f"""You are a software testing expert. Based on the following repository context, generate a comprehensive testing checklist.
 
 Repository Context:
-{json.dumps(repo_context, indent=2)}
+{repo_context}
 
 Analyze the repository and create a checklist with:
 - done: Tasks that appear to be completed (e.g., existing tests, documentation)

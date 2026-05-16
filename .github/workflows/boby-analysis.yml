@@ -1,0 +1,85 @@
+name: Boby Code Analysis
+
+on:
+  pull_request:
+    branches: [ main, develop ]
+  push:
+    branches: [ main, develop ]
+
+jobs:
+  boby-analysis:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0  # Full history for better analysis
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+    
+    - name: Install Boby dependencies
+      run: |
+        cd boby/backend
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    
+    - name: Run Boby Analysis
+      env:
+        WATSONX_API_KEY: ${{ secrets.WATSONX_API_KEY }}
+        WATSONX_PROJECT_ID: ${{ secrets.WATSONX_PROJECT_ID }}
+        WATSONX_URL: ${{ secrets.WATSONX_URL }}
+      run: |
+        cd boby/backend
+        python -c "
+        import sys
+        import json
+        from analyzer import scan_repository
+        from push_guardian import analyze_push_safety
+        
+        # Analyze repository
+        print('🔍 Analyzing repository architecture...')
+        graph = scan_repository('.')
+        print(f'✓ Found {len(graph[\"nodes\"])} components with {len(graph[\"edges\"])} dependencies')
+        
+        # Check push safety
+        print('\\n🛡️ Running Push Guardian analysis...')
+        safety_report = analyze_push_safety('.')
+        
+        print(f'\\nStatus: {safety_report[\"status\"].upper()}')
+        print(f'Safe to push: {\"✓\" if safety_report[\"safe_to_push\"] else \"✗\"}')
+        
+        if safety_report['risks']:
+            print('\\n⚠️ Risks detected:')
+            for risk in safety_report['risks']:
+                print(f'  - {risk}')
+        
+        if safety_report['missing']:
+            print('\\n📋 Missing items:')
+            for item in safety_report['missing']:
+                print(f'  - {item}')
+        
+        # Fail if high risk
+        if safety_report['status'] == 'danger':
+            print('\\n❌ Analysis failed: High risk detected!')
+            sys.exit(1)
+        else:
+            print('\\n✅ Analysis passed!')
+        "
+    
+    - name: Comment PR with results
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v6
+      with:
+        script: |
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: '🤖 **Boby Analysis Complete**\n\nYour code has been analyzed by Boby AI Assistant powered by IBM Watsonx.ai.\n\nCheck the workflow logs for detailed results.'
+          })
+
+# Made with Bob

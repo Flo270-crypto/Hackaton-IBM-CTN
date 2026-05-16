@@ -22,7 +22,6 @@ export default function ImpactAnalyzer() {
     setError(null);
     
     try {
-      // Ensure we have a graph
       let currentGraph = graph;
       if (!currentGraph) {
         currentGraph = await fetchGraph();
@@ -66,7 +65,7 @@ export default function ImpactAnalyzer() {
   };
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col p-4 bg-slate-900">
       {/* Search form */}
       <form onSubmit={analyzeImpact} className="mb-4">
         <div className="flex gap-2">
@@ -75,17 +74,17 @@ export default function ImpactAnalyzer() {
               type="text"
               value={filename}
               onChange={(e) => setFilename(e.target.value)}
-              placeholder="Enter filename (e.g., src/app.js)"
-              className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg 
-                         text-white placeholder-gray-500 focus:outline-none focus:border-purple-500
-                         transition-colors"
+              placeholder="src/auth/session.ts"
+              className="w-full px-4 py-2.5 bg-gray-800 border border-gray-700 rounded-lg 
+                         text-white placeholder-gray-500 focus:outline-none focus:border-blue-500
+                         transition-colors text-sm"
             />
           </div>
           <button
             type="submit"
             disabled={loading}
-            className="px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-700 
-                       text-white rounded-lg transition-colors duration-200 flex items-center gap-2"
+            className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 
+                       text-white rounded-lg transition-colors duration-200 flex items-center gap-2 text-sm font-medium"
           >
             {loading ? (
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -128,7 +127,7 @@ export default function ImpactAnalyzer() {
               <div
                 key={index}
                 className="bg-gray-800 rounded-lg p-4 border border-gray-700 
-                           hover:border-purple-700 transition-colors"
+                           hover:border-blue-700 transition-colors"
               >
                 <div className="flex items-start justify-between mb-2">
                   <div className="flex items-center gap-2 flex-1 min-w-0">

@@ -13,10 +13,17 @@ import push_guardian
 
 app = FastAPI(title="Boby - Code Analysis Backend")
 
-# Configure CORS for localhost:5173
+# Configure CORS for frontend access
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:5174",
+        "http://127.0.0.1:5174",
+        "http://localhost:5175",
+        "http://127.0.0.1:5175"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -34,7 +41,7 @@ class ImpactRequest(BaseModel):
 
 
 class ChecklistRequest(BaseModel):
-    repo_context: Dict
+    repo_context: str
 
 
 class HistoryRequest(BaseModel):
@@ -73,7 +80,7 @@ async def analyze_repository(request: AnalyzeRequest):
     Returns:
         Dependency graph with nodes, edges, and AI-generated critical file analysis
     """
-    repo_path = request.repo_path
+    repo_path = resolve_repo_path(request.repo_path)
     
     # Validate path
     if not os.path.exists(repo_path):
@@ -156,7 +163,7 @@ async def get_repository_history(request: HistoryRequest):
     Returns:
         Last 10 commits and most modified files
     """
-    repo_path = request.repo_path
+    repo_path = resolve_repo_path(request.repo_path)
     
     # Validate path
     if not os.path.exists(repo_path):
@@ -189,7 +196,7 @@ async def push_guardian_check(request: PushGuardianRequest):
     Returns:
         AI-powered analysis with status, risks, missing items, and recommendation
     """
-    repo_path = request.repo_path
+    repo_path = resolve_repo_path(request.repo_path)
     
     # Validate path
     if not os.path.exists(repo_path):
@@ -216,7 +223,7 @@ async def merge_intelligence_check(request: MergeIntelligenceRequest):
     Returns:
         AI-powered analysis with conflicts, severity, resolution steps, and merge safety
     """
-    repo_path = request.repo_path
+    repo_path = resolve_repo_path(request.repo_path)
     target_branch = request.target_branch
     
     # Validate path
@@ -234,6 +241,34 @@ async def merge_intelligence_check(request: MergeIntelligenceRequest):
 
 
 # Helper Functions
+
+def resolve_repo_path(repo_path: str) -> str:
+    """
+    Resolve repository path relative to the backend directory.
+    
+    Args:
+        repo_path: Path provided by frontend (e.g., './demo-repo')
+        
+    Returns:
+        Absolute path to the repository
+    """
+    # Get the backend directory (where this script is located)
+    backend_dir = Path(__file__).parent
+    
+    # Go up one level to the boby directory
+    boby_dir = backend_dir.parent
+    
+    # If path starts with './', resolve it relative to boby directory
+    if repo_path.startswith('./'):
+        resolved_path = boby_dir / repo_path[2:]
+    elif repo_path.startswith('../'):
+        resolved_path = boby_dir / repo_path
+    else:
+        # Assume it's relative to boby directory
+        resolved_path = boby_dir / repo_path
+    
+    return str(resolved_path.resolve())
+
 
 def build_file_tree(repo_path: str) -> Dict:
     """
