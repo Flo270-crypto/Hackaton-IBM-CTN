@@ -1,14 +1,14 @@
 import { useState } from 'react';
 import { Search, AlertTriangle, Loader2, AlertCircle } from 'lucide-react';
 import { api } from '../services/api';
-import { useGraph } from '../context/GraphContext';
+import { useBoby } from '../context/BobyContext';
 
 export default function ImpactAnalyzer() {
   const [filename, setFilename] = useState('');
   const [affectedModules, setAffectedModules] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const { graph, fetchGraph } = useGraph();
+  const { graph, fetchGraph } = useBoby();
 
   const analyzeImpact = async (e) => {
     e.preventDefault();

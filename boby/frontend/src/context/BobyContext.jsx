@@ -1,17 +1,17 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState } from 'react';
 import { api } from '../services/api';
 
-const GraphContext = createContext();
+const BobyContext = createContext();
 
-export const useGraph = () => {
-  const context = useContext(GraphContext);
+export const useBoby = () => {
+  const context = useContext(BobyContext);
   if (!context) {
-    throw new Error('useGraph must be used within GraphProvider');
+    throw new Error('useBoby must be used within BobyProvider');
   }
   return context;
 };
 
-export const GraphProvider = ({ children }) => {
+export const BobyProvider = ({ children }) => {
   const [graph, setGraph] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -42,9 +42,9 @@ export const GraphProvider = ({ children }) => {
   };
 
   return (
-    <GraphContext.Provider value={value}>
+    <BobyContext.Provider value={value}>
       {children}
-    </GraphContext.Provider>
+    </BobyContext.Provider>
   );
 };
 

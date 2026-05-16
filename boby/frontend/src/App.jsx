@@ -1,11 +1,11 @@
 import FloatingWidget from './widget/FloatingWidget';
-import { GraphProvider } from './context/GraphContext';
+import { BobyProvider } from './context/BobyContext';
 
 function App() {
   return (
-    <GraphProvider>
+    <BobyProvider>
       <FloatingWidget />
-    </GraphProvider>
+    </BobyProvider>
   );
 }
 

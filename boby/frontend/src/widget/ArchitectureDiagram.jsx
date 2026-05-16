@@ -1,14 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
-import ReactFlow, { 
-  Background, 
-  Controls, 
+import ReactFlow, {
+  Background,
+  Controls,
   MiniMap,
   useNodesState,
   useEdgesState
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { AlertCircle, Loader2 } from 'lucide-react';
-import { useGraph } from '../context/GraphContext';
+import { useBoby } from '../context/BobyContext';
 
 const nodeColor = (risk) => {
   switch(risk) {
@@ -20,7 +20,7 @@ const nodeColor = (risk) => {
 };
 
 export default function ArchitectureDiagram() {
-  const { graph, loading, error, fetchGraph } = useGraph();
+  const { graph, loading, error, fetchGraph } = useBoby();
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [selectedNode, setSelectedNode] = useState(null);
