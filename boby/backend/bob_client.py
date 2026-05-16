@@ -4,6 +4,7 @@ from typing import Dict
 from dotenv import load_dotenv
 from ibm_watsonx_ai import APIClient
 from ibm_watsonx_ai.foundation_models import ModelInference
+import re
 
 # Load environment variables
 load_dotenv()
@@ -16,20 +17,31 @@ WATSONX_URL = os.getenv("WATSONX_URL", "https://us-south.ml.cloud.ibm.com")
 # Model configuration
 MODEL_ID = "meta-llama/llama-3-3-70b-instruct"
 
-# Initialize API client
-credentials = {
-    "url": WATSONX_URL,
-    "apikey": WATSONX_API_KEY
-}
+# Global client variable
+_client = None
 
-client = APIClient(credentials)
+def _get_api_client():
+    """Lazy initialization of the API Client."""
+    global _client
+    if _client is None:
+        if not WATSONX_API_KEY:
+            raise ValueError("WATSONX_API_KEY is not set. Please check your .env file.")
+        credentials = {
+            "url": WATSONX_URL,
+            "apikey": WATSONX_API_KEY
+        }
+        _client = APIClient(credentials)
+    return _client
 
 
 def _get_model_inference():
     """Initialize model inference with project ID."""
+    api_client = _get_api_client()
+    if not WATSONX_PROJECT_ID:
+         raise ValueError("WATSONX_PROJECT_ID is not set. Please check your .env file.")
     return ModelInference(
         model_id=MODEL_ID,
-        api_client=client,
+        api_client=api_client,
         project_id=WATSONX_PROJECT_ID,
         params={
             "decoding_method": "greedy",
@@ -43,52 +55,34 @@ def _get_model_inference():
 def _extract_json_from_response(response_text: str) -> dict:
     """
     Extract JSON from response text, handling markdown code blocks and extra text.
-    
-    Args:
-        response_text: Raw response text from the model
-        
-    Returns:
-        Parsed JSON dictionary
+    Uses regex to find the most probable complete JSON object.
     """
-    # Remove markdown code blocks if present
     text = response_text.strip()
     
-    # Remove ```json and ``` markers
-    if text.startswith("```json"):
-        text = text[7:]
-    elif text.startswith("```"):
-        text = text[3:]
+    # regex pattern to catch block starting with { and ending with }
+    # this will try to grab the largest valid-looking json object
+    pattern = r'\{(?:[^{}]|(?R))*\}'
     
-    if text.endswith("```"):
-        text = text[:-3]
+    # Since python's re module doesn't support recursive regex like PCRE,
+    # we'll use a simpler approach: finding the first { and the last }
     
-    text = text.strip()
-    
-    # Try to find JSON object boundaries
-    # Look for the first { and last }
     start_idx = text.find('{')
-    if start_idx == -1:
+    end_idx = text.rfind('}')
+    
+    if start_idx == -1 or end_idx == -1 or end_idx < start_idx:
         raise ValueError("No JSON object found in response")
+        
+    json_text = text[start_idx:end_idx+1]
     
-    # Find the matching closing brace
-    brace_count = 0
-    end_idx = -1
-    for i in range(start_idx, len(text)):
-        if text[i] == '{':
-            brace_count += 1
-        elif text[i] == '}':
-            brace_count -= 1
-            if brace_count == 0:
-                end_idx = i + 1
-                break
+    # Clean control characters just in case
+    json_text = re.sub(r'[\x00-\x1F\x7F]', '', json_text)
     
-    if end_idx == -1:
-        raise ValueError("No complete JSON object found in response")
-    
-    json_text = text[start_idx:end_idx]
-    
-    # Parse JSON
-    return json.loads(json_text)
+    try:
+        return json.loads(json_text)
+    except json.JSONDecodeError as e:
+        # One last fallback format cleaning
+        json_text = json_text.replace("'", '"')
+        return json.loads(json_text)
 
 
 async def analyze_architecture(file_tree: dict, dependency_graph: dict) -> dict:
@@ -129,7 +123,7 @@ Identify critical files and assign risk scores (0-100) based on:
 
 Also automatically identify the overarching architecture pattern and the key technologies/frameworks used.
 
-Return ONLY a valid JSON object (no markdown, no code blocks) in this exact format, with no extra text or explanations:
+Return ONLY a valid JSON object (no markdown, no code blocks) in this exact format, with NO extra conversational text:
 {{
   "technologies": ["React", "FastAPI"],
   "architecture_pattern": "Client-Server",
@@ -187,7 +181,7 @@ Analyze the repository and create a checklist with:
 - todo: Essential testing tasks that should be performed
 - suggestions: Additional recommendations for improving code quality
 
-Return ONLY a valid JSON object (no markdown, no code blocks) in this exact format:
+Return ONLY a valid JSON object (no markdown, no code blocks) in this exact format, with NO extra conversational text:
 {{
   "done": ["Existing unit tests found", "API documentation present"],
   "todo": ["Test edge cases", "Add integration tests", "Verify error handling"],
@@ -253,7 +247,7 @@ Identify all modules affected by changes to this file. For each affected module,
 
 Also provide an overall recommendation for testing and deployment.
 
-Return ONLY a valid JSON object (no markdown, no code blocks) in this exact format:
+Return ONLY a valid JSON object (no markdown, no code blocks) in this exact format, with NO extra conversational text:
 {{
   "affected_modules": [
     {{

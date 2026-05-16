@@ -15,16 +15,20 @@ from cache_manager import cache_manager
 app = FastAPI(title="Boby - Code Analysis Backend")
 
 # Configure CORS for frontend access
+# Get allowed origins from environment variable
+# In production, set ALLOWED_ORIGINS to your Vercel frontend URL
+# Example: ALLOWED_ORIGINS=https://your-app.vercel.app,https://your-app-preview.vercel.app
+allowed_origins_env = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,http://127.0.0.1:5174,http://localhost:5175,http://127.0.0.1:5175")
+
+# Parse origins from comma-separated string
+if allowed_origins_env == "*":
+    allowed_origins = ["*"]
+else:
+    allowed_origins = [origin.strip() for origin in allowed_origins_env.split(",") if origin.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-        "http://localhost:5174",
-        "http://127.0.0.1:5174",
-        "http://localhost:5175",
-        "http://127.0.0.1:5175"
-    ],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -426,7 +430,11 @@ def build_file_tree(repo_path: str) -> Dict:
     # Walk through the repository
     for root, dirs, files in os.walk(repo_path):
         # Skip common directories
-        dirs[:] = [d for d in dirs if d not in {'.git', 'node_modules', '__pycache__', 'venv', '.venv', 'dist', 'build'}]
+        exclude_dirs = {
+            '.git', 'node_modules', '__pycache__', 'venv', '.venv', 'dist', 'build', 
+            '.next', '.cache', 'coverage', '.idea', '.vscode'
+        }
+        dirs[:] = [d for d in dirs if d not in exclude_dirs]
         
         relative_root = os.path.relpath(root, repo_path)
         if relative_root == '.':

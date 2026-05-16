@@ -21,20 +21,31 @@ WATSONX_URL = os.getenv("WATSONX_URL", "https://us-south.ml.cloud.ibm.com")
 # Model configuration
 MODEL_ID = "meta-llama/llama-3-3-70b-instruct"
 
-# Initialize API client
-credentials = {
-    "url": WATSONX_URL,
-    "apikey": WATSONX_API_KEY
-}
+# Global client variable
+_client = None
 
-client = APIClient(credentials)
+def _get_api_client():
+    """Lazy initialization of the API Client."""
+    global _client
+    if _client is None:
+        if not WATSONX_API_KEY:
+            raise ValueError("WATSONX_API_KEY is not set. Please check your .env file.")
+        credentials = {
+            "url": WATSONX_URL,
+            "apikey": WATSONX_API_KEY
+        }
+        _client = APIClient(credentials)
+    return _client
 
 
 def _get_model_inference():
     """Initialize model inference with project ID."""
+    api_client = _get_api_client()
+    if not WATSONX_PROJECT_ID:
+         raise ValueError("WATSONX_PROJECT_ID is not set. Please check your .env file.")
     return ModelInference(
         model_id=MODEL_ID,
-        api_client=client,
+        api_client=api_client,
         project_id=WATSONX_PROJECT_ID,
         params={
             "decoding_method": "greedy",
