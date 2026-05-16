@@ -131,7 +131,7 @@ def resolve_import(source_file: str, import_path: str, all_files: List[str]) -> 
             resolved_path = str(Path(source_dir) / import_path)
         
         # Normalize path
-        resolved_path = str(Path(resolved_path).as_posix())
+        resolved_path = os.path.normpath(str(resolved_path)).replace("\\", "/")
         
         # Try different extensions
         for ext in ['', '.js', '.ts', '.jsx', '.tsx', '.py', '/index.js', '/index.ts']:
