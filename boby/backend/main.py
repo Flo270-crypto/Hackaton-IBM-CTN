@@ -9,6 +9,7 @@ from analyzer import scan_repository
 from git_tracker import get_git_history
 import bob_client
 import push_guardian
+from cache_manager import cache_manager
 
 
 app = FastAPI(title="Boby - Code Analysis Backend")
@@ -80,6 +81,12 @@ async def analyze_repository(request: AnalyzeRequest):
     Returns:
         Dependency graph with nodes, edges, and AI-generated critical file analysis
     """
+    # Check cache first for demo repo
+    cached = cache_manager.get_cached("analyze", request.repo_path)
+    if cached:
+        print(f"🚀 Returning cached result for analyze endpoint")
+        return cached
+    
     repo_path = resolve_repo_path(request.repo_path)
     
     # Validate path
@@ -100,11 +107,16 @@ async def analyze_repository(request: AnalyzeRequest):
         ai_analysis = await bob_client.analyze_architecture(file_tree, graph)
         
         # Return enriched result
-        return {
+        result = {
             "nodes": graph["nodes"],
             "edges": graph["edges"],
             "ai_analysis": ai_analysis
         }
+        
+        # Cache result if demo repo
+        cache_manager.set_cached("analyze", request.repo_path, result)
+        
+        return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error analyzing repository: {str(e)}")
 
@@ -142,11 +154,21 @@ async def generate_checklist(request: ChecklistRequest):
     Returns:
         AI-generated checklist with done, todo, and suggestions
     """
+    # Check cache first for demo repo
+    cached = cache_manager.get_cached("checklist", request.repo_context)
+    if cached:
+        print(f"🚀 Returning cached result for checklist endpoint")
+        return cached
+    
     repo_context = request.repo_context
     
     try:
         # Get AI-generated checklist
         checklist = await bob_client.generate_checklist(repo_context)
+        
+        # Cache result if demo repo
+        cache_manager.set_cached("checklist", request.repo_context, checklist)
+        
         return checklist
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error generating checklist: {str(e)}")
@@ -163,6 +185,12 @@ async def get_repository_history(request: HistoryRequest):
     Returns:
         Last 10 commits and most modified files
     """
+    # Check cache first for demo repo
+    cached = cache_manager.get_cached("history", request.repo_path)
+    if cached:
+        print(f"🚀 Returning cached result for history endpoint")
+        return cached
+    
     repo_path = resolve_repo_path(request.repo_path)
     
     # Validate path
@@ -175,10 +203,15 @@ async def get_repository_history(request: HistoryRequest):
         if "error" in history:
             raise HTTPException(status_code=400, detail=history["error"])
         
-        return {
+        result = {
             "commits": history["commits"],
             "most_modified_files": history["most_modified_files"]
         }
+        
+        # Cache result if demo repo
+        cache_manager.set_cached("history", request.repo_path, result)
+        
+        return result
     except HTTPException:
         raise
     except Exception as e:
@@ -196,6 +229,12 @@ async def push_guardian_check(request: PushGuardianRequest):
     Returns:
         AI-powered analysis with status, risks, missing items, and recommendation
     """
+    # Check cache first for demo repo
+    cached = cache_manager.get_cached("push-guardian", request.repo_path)
+    if cached:
+        print(f"🚀 Returning cached result for push-guardian endpoint")
+        return cached
+    
     repo_path = resolve_repo_path(request.repo_path)
     
     # Validate path
@@ -207,6 +246,10 @@ async def push_guardian_check(request: PushGuardianRequest):
     
     try:
         result = await push_guardian.analyze_before_push(repo_path)
+        
+        # Cache result if demo repo
+        cache_manager.set_cached("push-guardian", request.repo_path, result)
+        
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error analyzing push: {str(e)}")
@@ -223,6 +266,13 @@ async def merge_intelligence_check(request: MergeIntelligenceRequest):
     Returns:
         AI-powered analysis with conflicts, severity, resolution steps, and merge safety
     """
+    # Check cache first for demo repo
+    cache_key = f"{request.repo_path}_{request.target_branch}"
+    cached = cache_manager.get_cached("merge-intelligence", cache_key)
+    if cached:
+        print(f"🚀 Returning cached result for merge-intelligence endpoint")
+        return cached
+    
     repo_path = resolve_repo_path(request.repo_path)
     target_branch = request.target_branch
     
@@ -235,12 +285,89 @@ async def merge_intelligence_check(request: MergeIntelligenceRequest):
     
     try:
         result = await push_guardian.analyze_merge_conflicts(repo_path, target_branch)
+        
+        # Cache result if demo repo
+        cache_manager.set_cached("merge-intelligence", cache_key, result)
+        
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error analyzing merge: {str(e)}")
 
 
 # Helper Functions
+
+@app.post("/warm-cache")
+async def warm_cache():
+    """
+    Warms up the cache by running all analyses on the demo repository.
+    This endpoint should be called once to pre-populate the cache.
+    
+    Returns:
+        Status message with details of cached endpoints
+    """
+    demo_repo_path = './demo-repo'
+    repo_path = resolve_repo_path(demo_repo_path)
+    
+    if not os.path.exists(repo_path):
+        raise HTTPException(status_code=404, detail=f"Demo repository not found: {repo_path}")
+    
+    results = {
+        "status": "success",
+        "cached_endpoints": []
+    }
+    
+    try:
+        # 1. Analyze endpoint
+        print("🔥 Warming cache: analyze endpoint...")
+        graph = scan_repository(repo_path)
+        file_tree = build_file_tree(repo_path)
+        ai_analysis = await bob_client.analyze_architecture(file_tree, graph)
+        analyze_result = {
+            "nodes": graph["nodes"],
+            "edges": graph["edges"],
+            "ai_analysis": ai_analysis
+        }
+        cache_manager.warm_cache("analyze", analyze_result)
+        results["cached_endpoints"].append("analyze")
+        
+        # 2. History endpoint
+        print("🔥 Warming cache: history endpoint...")
+        history = get_git_history(repo_path)
+        history_result = {
+            "commits": history["commits"],
+            "most_modified_files": history["most_modified_files"]
+        }
+        cache_manager.warm_cache("history", history_result)
+        results["cached_endpoints"].append("history")
+        
+        # 3. Push Guardian endpoint
+        print("🔥 Warming cache: push-guardian endpoint...")
+        push_result = await push_guardian.analyze_before_push(repo_path)
+        cache_manager.warm_cache("push-guardian", push_result)
+        results["cached_endpoints"].append("push-guardian")
+        
+        # 4. Merge Intelligence endpoint (with main branch)
+        print("🔥 Warming cache: merge-intelligence endpoint...")
+        merge_result = await push_guardian.analyze_merge_conflicts(repo_path, "main")
+        cache_manager.warm_cache("merge-intelligence", merge_result)
+        results["cached_endpoints"].append("merge-intelligence")
+        
+        # 5. Checklist endpoint
+        print("🔥 Warming cache: checklist endpoint...")
+        checklist_result = await bob_client.generate_checklist(demo_repo_path)
+        cache_manager.warm_cache("checklist", checklist_result)
+        results["cached_endpoints"].append("checklist")
+        
+        # Save cache to disk
+        cache_manager.save_cache()
+        
+        print("✅ Cache warming complete!")
+        results["message"] = "Cache successfully warmed for demo repository"
+        return results
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error warming cache: {str(e)}")
+
 
 def resolve_repo_path(repo_path: str) -> str:
     """
