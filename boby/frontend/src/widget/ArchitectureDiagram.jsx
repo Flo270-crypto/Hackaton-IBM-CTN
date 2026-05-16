@@ -1,17 +1,17 @@
 import { useState, useEffect, useCallback } from 'react';
-import ReactFlow, {
-  Background,
-  Controls,
+import ReactFlow, { 
+  Background, 
+  Controls, 
   MiniMap,
   useNodesState,
   useEdgesState
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { AlertCircle, Loader2 } from 'lucide-react';
-import { api } from '../services/api';
+import { useGraph } from '../context/GraphContext';
 
 const nodeColor = (risk) => {
-  switch (risk) {
+  switch(risk) {
     case 'HIGH': return '#ef4444'; // red-500
     case 'MEDIUM': return '#f97316'; // orange-500
     case 'LOW': return '#22c55e'; // green-500
@@ -20,36 +20,32 @@ const nodeColor = (risk) => {
 };
 
 export default function ArchitectureDiagram() {
+  const { graph, loading, error, fetchGraph } = useGraph();
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [selectedNode, setSelectedNode] = useState(null);
 
   // Auto-fetch on mount
   useEffect(() => {
-    fetchArchitecture();
+    if (!graph) {
+      fetchGraph();
+    }
   }, []);
 
-  const fetchArchitecture = async () => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      const workspacePath = import.meta.env.VITE_WORKSPACE_PATH || '';
-      const data = await api.analyze(workspacePath);
-
+  // Update React Flow nodes and edges when graph changes
+  useEffect(() => {
+    if (graph && graph.nodes && graph.edges) {
       // Transform nodes for React Flow
-      const flowNodes = data.nodes.map((node, index) => ({
+      const flowNodes = graph.nodes.map((node, index) => ({
         id: node.id,
-        data: {
+        data: { 
           label: node.label,
           risk: node.risk,
           fullPath: node.id
         },
-        position: {
-          x: (index % 3) * 200 + 50,
-          y: Math.floor(index / 3) * 150 + 50
+        position: { 
+          x: (index % 3) * 200 + 50, 
+          y: Math.floor(index / 3) * 150 + 50 
         },
         style: {
           background: nodeColor(node.risk),
@@ -64,7 +60,7 @@ export default function ArchitectureDiagram() {
       }));
 
       // Transform edges for React Flow
-      const flowEdges = data.edges.map((edge, index) => ({
+      const flowEdges = graph.edges.map((edge, index) => ({
         id: `e${index}`,
         source: edge.source,
         target: edge.target,
@@ -75,12 +71,8 @@ export default function ArchitectureDiagram() {
 
       setNodes(flowNodes);
       setEdges(flowEdges);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
     }
-  };
+  }, [graph]);
 
   const onNodeClick = useCallback((event, node) => {
     setSelectedNode(node);
@@ -112,7 +104,7 @@ export default function ArchitectureDiagram() {
         <AlertCircle className="w-12 h-12 text-red-500 mb-4" />
         <p className="text-red-400 text-center mb-4">{error}</p>
         <button
-          onClick={fetchArchitecture}
+          onClick={fetchGraph}
           className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg 
                      transition-colors duration-200"
         >
@@ -145,7 +137,7 @@ export default function ArchitectureDiagram() {
       >
         <Background color="#4b5563" gap={16} />
         <Controls className="bg-gray-800 border border-gray-700" />
-        <MiniMap
+        <MiniMap 
           nodeColor={(node) => nodeColor(node.data.risk)}
           className="bg-gray-800 border border-gray-700"
         />
@@ -158,7 +150,7 @@ export default function ArchitectureDiagram() {
           <div className="flex items-start justify-between mb-2">
             <h3 className="font-semibold text-white text-sm">{selectedNode.data.label}</h3>
             <span className={`px-2 py-1 rounded text-xs font-medium ml-2
-              ${selectedNode.data.risk === 'HIGH' ? 'bg-red-500' :
+              ${selectedNode.data.risk === 'HIGH' ? 'bg-red-500' : 
                 selectedNode.data.risk === 'MEDIUM' ? 'bg-orange-500' : 'bg-green-500'} 
               text-white`}>
               {selectedNode.data.risk}

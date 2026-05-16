@@ -17,8 +17,8 @@ export default function SmartChecklist() {
     setError(null);
     
     try {
-      // Generate repo context based on workspace
-      const repoContext = `Repository at ${import.meta.env.VITE_WORKSPACE_PATH || 'current directory'}`;
+      // Use demo-repo path as repo context
+      const repoContext = './demo-repo';
       const data = await api.checklist(repoContext);
       setChecklist(data);
     } catch (err) {

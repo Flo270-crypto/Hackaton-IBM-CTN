@@ -1,49 +1,41 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Search, AlertTriangle, Loader2, AlertCircle } from 'lucide-react';
 import { api } from '../services/api';
+import { useGraph } from '../context/GraphContext';
 
 export default function ImpactAnalyzer() {
   const [filename, setFilename] = useState('');
   const [affectedModules, setAffectedModules] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [graph, setGraph] = useState(null);
-
-  // Fetch graph on mount for impact analysis
-  useEffect(() => {
-    fetchGraph();
-  }, []);
-
-  const fetchGraph = async () => {
-    try {
-      const workspacePath = import.meta.env.VITE_WORKSPACE_PATH || '';
-      const data = await api.analyze(workspacePath);
-      setGraph(data);
-    } catch (err) {
-      console.error('Failed to fetch graph:', err);
-    }
-  };
+  const { graph, fetchGraph } = useGraph();
 
   const analyzeImpact = async (e) => {
     e.preventDefault();
-
+    
     if (!filename.trim()) {
       setError('Please enter a filename');
       return;
     }
 
-    if (!graph) {
-      setError('Dependency graph not loaded. Please try again.');
-      return;
-    }
-
     setLoading(true);
     setError(null);
-
+    
     try {
-      const data = await api.impact(filename.trim(), graph);
-      setAffectedModules(data.affected_modules || []);
+      // Ensure we have a graph
+      let currentGraph = graph;
+      if (!currentGraph) {
+        currentGraph = await fetchGraph();
+      }
 
+      if (!currentGraph) {
+        setError('Failed to load dependency graph. Please try again.');
+        return;
+      }
+
+      const data = await api.impact(filename.trim(), currentGraph);
+      setAffectedModules(data.affected_modules || []);
+      
       if (data.affected_modules.length === 0) {
         setError('No affected modules found. File may not exist in the dependency graph.');
       }
@@ -56,7 +48,7 @@ export default function ImpactAnalyzer() {
   };
 
   const getRiskColor = (risk) => {
-    switch (risk) {
+    switch(risk) {
       case 'HIGH': return 'bg-red-500';
       case 'MEDIUM': return 'bg-orange-500';
       case 'LOW': return 'bg-green-500';
@@ -65,7 +57,7 @@ export default function ImpactAnalyzer() {
   };
 
   const getTypeIcon = (type) => {
-    switch (type) {
+    switch(type) {
       case 'changed': return '🔴';
       case 'direct': return '🟠';
       case 'indirect': return '🟡';
@@ -91,7 +83,7 @@ export default function ImpactAnalyzer() {
           </div>
           <button
             type="submit"
-            disabled={loading || !graph}
+            disabled={loading}
             className="px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-700 
                        text-white rounded-lg transition-colors duration-200 flex items-center gap-2"
           >
