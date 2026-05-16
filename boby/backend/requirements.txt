@@ -4,7 +4,7 @@ gitpython==3.1.41
 httpx==0.26.0
 python-multipart==0.0.6
 pydantic==2.5.3
-ibm-watsonx-ai==1.0.0
+ibm-watsonx-ai>=1.5.11
 python-dotenv==1.0.0
 pytest==7.4.3
 pytest-asyncio==0.21.1

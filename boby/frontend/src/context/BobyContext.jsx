@@ -15,15 +15,16 @@ export const BobyProvider = ({ children }) => {
   const [graph, setGraph] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [repoPath, setRepoPath] = useState('');
 
-  const fetchGraph = async () => {
+  const fetchGraph = async (customPath) => {
     setLoading(true);
     setError(null);
 
     try {
-      // Use demo-repo for consistent testing
-      const repoPath = './demo-repo';
-      const data = await api.analyze(repoPath);
+      // Use saved path from localStorage or custom path
+      const pathToUse = customPath || localStorage.getItem('boby_repo_path') || './demo-repo';
+      const data = await api.analyze(pathToUse);
       setGraph(data);
       return data;
     } catch (err) {
@@ -39,7 +40,9 @@ export const BobyProvider = ({ children }) => {
     loading,
     error,
     fetchGraph,
-    setGraph
+    setGraph,
+    repoPath,
+    setRepoPath
   };
 
   return (

@@ -1,21 +1,25 @@
 import { useState } from 'react';
 import { GitMerge, GitPullRequest, AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
 import { api } from '../services/api';
+import { useRepoPath } from '../hooks/useRepoPath';
 
 export default function MergeIntelligence() {
     const [loading, setLoading] = useState(false);
     const [targetBranch, setTargetBranch] = useState('main');
     const [report, setReport] = useState(null);
     const [error, setError] = useState(null);
+    const repoPath = useRepoPath();
 
     const analyzeMerge = async (e) => {
         e.preventDefault();
-        if (!targetBranch) return;
+        if (!targetBranch || !repoPath) {
+            setError('Missing repository path or target branch');
+            return;
+        }
 
         setLoading(true);
         setError(null);
         try {
-            const repoPath = './demo-repo';
             const data = await api.mergeIntelligence(repoPath, targetBranch);
             setReport(data);
         } catch (err) {

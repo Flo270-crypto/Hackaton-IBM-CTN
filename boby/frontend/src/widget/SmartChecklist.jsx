@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { RefreshCw, Download, CheckCircle2, Circle, ChevronDown, ChevronUp, Loader2, AlertCircle } from 'lucide-react';
 import { api } from '../services/api';
+import { useRepoPath } from '../hooks/useRepoPath';
 
 export default function SmartChecklist() {
   const [checklist, setChecklist] = useState({
@@ -11,14 +12,18 @@ export default function SmartChecklist() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const repoPath = useRepoPath();
 
   const refreshChecklist = async () => {
+    if (!repoPath) {
+      setError('No repository path configured');
+      return;
+    }
     setLoading(true);
     setError(null);
     
     try {
-      const repoContext = './demo-repo';
-      const data = await api.checklist(repoContext);
+      const data = await api.checklist(repoPath);
       setChecklist(data);
     } catch (err) {
       setError(err.message);

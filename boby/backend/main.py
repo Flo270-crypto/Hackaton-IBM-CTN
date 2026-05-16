@@ -244,14 +244,20 @@ async def merge_intelligence_check(request: MergeIntelligenceRequest):
 
 def resolve_repo_path(repo_path: str) -> str:
     """
-    Resolve repository path relative to the backend directory.
+    Resolve repository path - accepts both absolute and relative paths.
     
     Args:
-        repo_path: Path provided by frontend (e.g., './demo-repo')
+        repo_path: Path provided by frontend (absolute or relative)
         
     Returns:
         Absolute path to the repository
     """
+    path = Path(repo_path)
+    
+    # If it's already an absolute path, use it directly
+    if path.is_absolute():
+        return str(path.resolve())
+    
     # Get the backend directory (where this script is located)
     backend_dir = Path(__file__).parent
     

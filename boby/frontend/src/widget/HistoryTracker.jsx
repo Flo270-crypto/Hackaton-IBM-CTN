@@ -1,24 +1,26 @@
 import { useState, useEffect } from 'react';
 import { GitCommit, User, Calendar, FileText, Loader2, AlertCircle } from 'lucide-react';
 import { api } from '../services/api';
+import { useRepoPath } from '../hooks/useRepoPath';
 
 export default function HistoryTracker() {
   const [commits, setCommits] = useState([]);
   const [mostModifiedFiles, setMostModifiedFiles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const repoPath = useRepoPath();
 
   useEffect(() => {
-    fetchHistory();
-  }, []);
+    if (repoPath) {
+      fetchHistory();
+    }
+  }, [repoPath]);
 
   const fetchHistory = async () => {
     setLoading(true);
     setError(null);
 
     try {
-      // Use demo-repo for consistent testing
-      const repoPath = './demo-repo';
       const data = await api.history(repoPath);
       setCommits(data.commits || []);
       setMostModifiedFiles(data.most_modified_files || []);

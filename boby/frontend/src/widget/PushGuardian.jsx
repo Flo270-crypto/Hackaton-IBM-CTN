@@ -1,17 +1,22 @@
 import { useState } from 'react';
 import { Shield, AlertTriangle, AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
 import { api } from '../services/api';
+import { useRepoPath } from '../hooks/useRepoPath';
 
 export default function PushGuardian() {
     const [loading, setLoading] = useState(false);
     const [report, setReport] = useState(null);
     const [error, setError] = useState(null);
+    const repoPath = useRepoPath();
 
     const analyzePush = async () => {
+        if (!repoPath) {
+            setError('No repository path configured');
+            return;
+        }
         setLoading(true);
         setError(null);
         try {
-            const repoPath = './demo-repo';
             const data = await api.pushGuardian(repoPath);
             setReport(data);
         } catch (err) {
