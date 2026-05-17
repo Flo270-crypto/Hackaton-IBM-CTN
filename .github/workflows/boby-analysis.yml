@@ -37,17 +37,18 @@ jobs:
         python -c "
         import sys
         import json
+        import asyncio
         from analyzer import scan_repository
-        from push_guardian import analyze_push_safety
+        from push_guardian import analyze_before_push
         
         # Analyze repository
         print('🔍 Analyzing repository architecture...')
         graph = scan_repository('.')
         print(f'✓ Found {len(graph[\"nodes\"])} components with {len(graph[\"edges\"])} dependencies')
         
-        # Check push safety
+        # Check push safety (async function)
         print('\\n🛡️ Running Push Guardian analysis...')
-        safety_report = analyze_push_safety('.')
+        safety_report = asyncio.run(analyze_before_push('.'))
         
         print(f'\\nStatus: {safety_report[\"status\"].upper()}')
         print(f'Safe to push: {\"✓\" if safety_report[\"safe_to_push\"] else \"✗\"}')
