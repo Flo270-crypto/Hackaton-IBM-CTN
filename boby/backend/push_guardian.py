@@ -437,4 +437,7 @@ safe_to_merge should be false if severity is "high"."""
         }
 
 
+# Alias for backward compatibility
+analyze_push_safety = analyze_before_push
+
 # Made with Bob
