@@ -29,19 +29,14 @@ function App() {
           {/* Repository URL Section - Demo mode (not editable) */}
           <div className="mb-4 bg-gradient-to-br from-slate-800/60 to-slate-900/60 border border-slate-700/50 rounded-lg p-3 backdrop-blur-sm">
             <h3 className="text-[10px] font-bold text-slate-400 mb-2 uppercase tracking-wide">Repository</h3>
-            <div className="relative">
-              <input
-                type="text"
-                value="./demo-repo"
-                disabled
-                className="w-full px-2 py-1.5 bg-slate-900/60 border border-slate-700/50 rounded text-[10px]
-                         text-slate-400 font-mono cursor-not-allowed"
-                placeholder="Repository URL"
-              />
-              <div className="absolute right-2 top-1/2 -translate-y-1/2">
-                <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div>
-              </div>
-            </div>
+            <input
+              type="text"
+              value="./demo-repo"
+              disabled
+              className="w-full px-2 py-1.5 bg-slate-900/60 border border-slate-700/50 rounded text-[10px]
+                       text-slate-400 font-mono cursor-not-allowed"
+              placeholder="Repository URL"
+            />
             <p className="text-[9px] text-slate-500 mt-1.5">🔒 Demo mode - Fixed repository</p>
           </div>
 
