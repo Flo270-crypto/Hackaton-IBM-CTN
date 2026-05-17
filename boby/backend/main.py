@@ -458,6 +458,7 @@ async def warm_cache():
 def resolve_repo_path(repo_path: str) -> str:
     """
     Resolve repository path - accepts both absolute and relative paths.
+    Works both locally (boby/backend/) and on Railway (where demo-repo is copied to backend/).
     
     Args:
         repo_path: Path provided by frontend (absolute or relative)
@@ -474,7 +475,19 @@ def resolve_repo_path(repo_path: str) -> str:
     # Get the backend directory (where this script is located)
     backend_dir = Path(__file__).parent
     
-    # Go up one level to the boby directory
+    # For demo-repo, check if it exists in backend directory first (Railway deployment)
+    if repo_path in ['./demo-repo', 'demo-repo']:
+        # Try backend/demo-repo first (Railway)
+        railway_path = backend_dir / 'demo-repo'
+        if railway_path.exists():
+            return str(railway_path.resolve())
+        
+        # Fall back to ../demo-repo (local development)
+        local_path = backend_dir.parent / 'demo-repo'
+        if local_path.exists():
+            return str(local_path.resolve())
+    
+    # Go up one level to the boby directory for other paths
     boby_dir = backend_dir.parent
     
     # If path starts with './', resolve it relative to boby directory
