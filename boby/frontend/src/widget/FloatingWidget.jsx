@@ -195,7 +195,7 @@ export default function FloatingWidget() {
         <div className={`bg-slate-900/95 backdrop-blur-xl border-2 border-slate-700/50 shadow-2xl
                         rounded-2xl transition-all duration-300
                         flex flex-col overflow-hidden
-                        ${activeModule === 'architecture' ? 'w-[90vw] h-[90vh] max-w-[1400px] max-h-[900px]' : 'w-[280px]'}`}
+                        ${activeModule === 'architecture' ? 'w-[90vw] h-[90vh] max-w-[1400px] max-h-[900px]' : 'w-[380px]'}`}
              style={{ maxHeight: activeModule === 'architecture' ? '900px' : activeModule ? '80vh' : '400px' }}>
           
           {/* Header */}

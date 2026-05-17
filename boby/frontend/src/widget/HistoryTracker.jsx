@@ -92,23 +92,23 @@ export default function HistoryTracker() {
 
   return (
     <div className="h-full flex flex-col">
-      {/* High-frequency files section */}
+      {/* High-frequency files section - More readable */}
       {mostModifiedFiles.some(f => f.high_frequency) && (
-        <div className="mb-4 p-3 bg-orange-900/20 border border-orange-700 rounded-lg">
-          <h3 className="text-orange-400 font-semibold text-sm mb-2 flex items-center gap-2">
+        <div className="mb-5 p-4 bg-orange-900/20 border border-orange-700 rounded-lg">
+          <h3 className="text-orange-400 font-semibold text-sm mb-3 flex items-center gap-2">
             🔥 High-Frequency Files
           </h3>
-          <div className="space-y-1">
+          <div className="space-y-2">
             {mostModifiedFiles
               .filter(f => f.high_frequency)
               .slice(0, 3)
               .map((file, index) => (
-                <div key={index} className="flex items-center justify-between text-xs">
-                  <span className="text-gray-300 truncate flex-1" title={file.file}>
+                <div key={index} className="flex items-start justify-between text-xs py-1">
+                  <span className="text-gray-300 flex-1 break-words pr-3" title={file.file}>
                     {file.file}
                   </span>
-                  <span className="text-orange-400 ml-2 flex-shrink-0">
-                    {file.modification_count} changes
+                  <span className="text-orange-400 flex-shrink-0 font-semibold">
+                    {file.modification_count}×
                   </span>
                 </div>
               ))}
@@ -120,51 +120,51 @@ export default function HistoryTracker() {
       <div className="flex-1 overflow-auto">
         <div className="relative">
           {/* Vertical line */}
-          <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-purple-700"></div>
+          <div className="absolute left-5 top-0 bottom-0 w-0.5 bg-purple-700"></div>
 
           {/* Commits */}
           <div className="space-y-6 pb-4">
             {commits.map((commit, index) => (
-              <div key={commit.hash} className="relative pl-12">
+              <div key={commit.hash} className="relative pl-14">
                 {/* Dot on timeline */}
-                <div className="absolute left-2.5 top-2 w-3 h-3 rounded-full bg-purple-500 
+                <div className="absolute left-3.5 top-3 w-3 h-3 rounded-full bg-purple-500
                                 border-2 border-gray-900 z-10"></div>
 
-                {/* Commit card */}
-                <div className="bg-gray-800 rounded-lg p-3 border border-gray-700 
+                {/* Commit card - More padding */}
+                <div className="bg-gray-800 rounded-lg p-4 border border-gray-700
                                 hover:border-purple-700 transition-colors">
                   {/* Commit header */}
-                  <div className="flex items-start justify-between mb-2">
+                  <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center gap-2 flex-1 min-w-0">
                       <GitCommit className="w-4 h-4 text-purple-400 flex-shrink-0" />
                       <span className="text-purple-400 font-mono text-xs">
                         {commit.hash}
                       </span>
                     </div>
-                    <span className="text-gray-500 text-xs flex-shrink-0 ml-2">
+                    <span className="text-gray-500 text-xs flex-shrink-0 ml-3">
                       {formatDate(commit.date)}
                     </span>
                   </div>
 
                   {/* Commit message */}
-                  <p className="text-white text-sm mb-2 leading-relaxed">
+                  <p className="text-white text-sm mb-3 leading-relaxed">
                     {commit.message}
                   </p>
 
                   {/* Author */}
-                  <div className="flex items-center gap-2 mb-2 text-xs text-gray-400">
+                  <div className="flex items-center gap-2 mb-3 text-xs text-gray-400">
                     <User className="w-3 h-3" />
                     <span>{commit.author}</span>
                   </div>
 
-                  {/* Files changed */}
+                  {/* Files changed - Show more characters, no truncation */}
                   {commit.files_changed && commit.files_changed.length > 0 && (
-                    <div className="mt-2 pt-2 border-t border-gray-700">
-                      <div className="flex items-center gap-2 mb-1 text-xs text-gray-500">
+                    <div className="mt-3 pt-3 border-t border-gray-700">
+                      <div className="flex items-center gap-2 mb-2 text-xs text-gray-500">
                         <FileText className="w-3 h-3" />
                         <span>{commit.files_changed.length} file{commit.files_changed.length !== 1 ? 's' : ''} changed</span>
                       </div>
-                      <div className="space-y-1 max-h-20 overflow-auto">
+                      <div className="space-y-2 max-h-32 overflow-auto">
                         {commit.files_changed.map((file, fileIndex) => {
                           const isHighFrequency = mostModifiedFiles.find(
                             f => f.file === file && f.high_frequency
@@ -172,7 +172,7 @@ export default function HistoryTracker() {
                           return (
                             <div
                               key={fileIndex}
-                              className={`text-xs px-2 py-1 rounded truncate ${isHighFrequency
+                              className={`text-xs px-3 py-2 rounded break-words ${isHighFrequency
                                 ? 'bg-orange-900/30 text-orange-300'
                                 : 'bg-gray-900 text-gray-400'
                                 }`}
