@@ -1,7 +1,7 @@
 import os
 import re
 from pathlib import Path
-from typing import Dict, List, Set
+from typing import Dict, List, Set, Optional
 
 
 def scan_repository(repo_path: str) -> Dict:
@@ -17,6 +17,7 @@ def scan_repository(repo_path: str) -> Dict:
     nodes = []
     edges = []
     file_imports = {}
+    all_source_files = []  # Track all files found
     
     # Supported file extensions
     extensions = {'.js', '.ts', '.jsx', '.tsx', '.py'}
@@ -30,11 +31,12 @@ def scan_repository(repo_path: str) -> Dict:
             file_path = Path(root) / file
             if file_path.suffix in extensions:
                 relative_path = str(file_path.relative_to(repo_path))
+                all_source_files.append(relative_path)
                 imports = extract_imports(file_path, file_path.suffix)
                 file_imports[relative_path] = imports
     
-    # Build nodes
-    for file_path in file_imports.keys():
+    # Build nodes for ALL files found
+    for file_path in all_source_files:
         node_id = file_path
         label = Path(file_path).name
         risk = calculate_risk(file_path, file_imports)
@@ -49,7 +51,7 @@ def scan_repository(repo_path: str) -> Dict:
     for source_file, imports in file_imports.items():
         for imported_file in imports:
             # Try to resolve the import to an actual file
-            resolved = resolve_import(source_file, imported_file, file_imports.keys())
+            resolved = resolve_import(source_file, imported_file, list(file_imports.keys()))
             if resolved:
                 edges.append({
                     "source": source_file,
@@ -108,7 +110,7 @@ def extract_imports(file_path: Path, extension: str) -> Set[str]:
     return imports
 
 
-def resolve_import(source_file: str, import_path: str, all_files: List[str]) -> str:
+def resolve_import(source_file: str, import_path: str, all_files: List[str]) -> Optional[str]:
     """
     Resolves a relative import path to an actual file in the repository.
     
@@ -154,9 +156,10 @@ def calculate_risk(file_path: str, file_imports: Dict[str, Set[str]]) -> str:
         Risk level: HIGH, MEDIUM, or LOW
     """
     # Count how many files depend on this file
+    all_files_list = list(file_imports.keys())
     dependents = sum(1 for imports in file_imports.values() if any(
-        resolve_import(source, imp, file_imports.keys()) == file_path 
-        for source, imports_set in file_imports.items() 
+        resolve_import(source, imp, all_files_list) == file_path
+        for source, imports_set in file_imports.items()
         for imp in imports_set
     ))
     

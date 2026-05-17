@@ -10,6 +10,7 @@ from git_tracker import get_git_history
 import bob_client
 import push_guardian
 from cache_manager import cache_manager
+from github_cloner import github_cloner
 
 
 app = FastAPI(title="Boby - Code Analysis Backend")
@@ -60,6 +61,12 @@ class PushGuardianRequest(BaseModel):
 class MergeIntelligenceRequest(BaseModel):
     repo_path: str
     target_branch: str
+
+
+class CloneAndAnalyzeRequest(BaseModel):
+    github_url: str
+    force_reclone: Optional[bool] = False
+    skip_ai: Optional[bool] = False  # Skip AI analysis for faster response
 
 
 
@@ -296,6 +303,81 @@ async def merge_intelligence_check(request: MergeIntelligenceRequest):
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error analyzing merge: {str(e)}")
+
+@app.post("/clone-and-analyze")
+async def clone_and_analyze_repository(request: CloneAndAnalyzeRequest):
+    """
+    Clone a GitHub repository and analyze it.
+    
+    Args:
+        request: Contains github_url and optional force_reclone flag
+        
+    Returns:
+        Clone status and analysis results (same format as /analyze endpoint)
+    """
+    try:
+        # Clone the repository
+        print(f"🔄 Cloning repository: {request.github_url}")
+        clone_result = github_cloner.clone_repository(
+            request.github_url, 
+            force_reclone=request.force_reclone
+        )
+        
+        # Check if clone was successful
+        if clone_result["status"] == "error":
+            raise HTTPException(
+                status_code=400, 
+                detail=f"{clone_result['error']}: {clone_result['message']}"
+            )
+        
+        # Get the local path
+        repo_path = clone_result["path"]
+        
+        # Cleanup old repos to save disk space
+        github_cloner.cleanup_old_repos(max_repos=10)
+        
+        # Analyze the cloned repository (basic graph analysis - fast)
+        print(f"🔍 Analyzing cloned repository: {repo_path}")
+        graph = scan_repository(repo_path)
+        
+        # AI analysis is optional and can be skipped for faster response
+        ai_analysis = None
+        if not request.skip_ai:
+            try:
+                file_tree = build_file_tree(repo_path)
+                ai_analysis = await bob_client.analyze_architecture(file_tree, graph)
+                print(f"✅ AI analysis completed")
+            except Exception as e:
+                print(f"⚠️ AI analysis failed (non-blocking): {str(e)}")
+                ai_analysis = {"error": "AI analysis unavailable", "message": str(e)}
+        else:
+            print(f"⚡ Skipping AI analysis for faster response")
+            ai_analysis = {"skipped": True, "message": "AI analysis skipped for performance"}
+        
+        # Return combined result
+        return {
+            "clone_info": {
+                "status": clone_result["status"],
+                "owner": clone_result["owner"],
+                "repo": clone_result["repo"],
+                "message": clone_result["message"]
+            },
+            "analysis": {
+                "nodes": graph["nodes"],
+                "edges": graph["edges"],
+                "ai_analysis": ai_analysis
+            },
+            "repo_path": repo_path
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Error cloning and analyzing repository: {str(e)}"
+        )
+
 
 
 # Helper Functions

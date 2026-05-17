@@ -174,7 +174,49 @@ export const api = {
     });
     if (!response.ok) throw new Error(`Failed to analyze merge: ${await response.text()}`);
     return await response.json();
-  }
+  },
+
+  /**
+   * Clone and analyze a GitHub repository
+   * @param {string} githubUrl - GitHub repository URL
+   * @param {boolean} forceReclone - Force re-clone if already exists
+   * @returns {Promise<{clone_info: Object, analysis: Object, repo_path: string}>}
+   */
+  cloneAndAnalyze: async (githubUrl, forceReclone = false) => {
+    const url = `${API_URL}/clone-and-analyze`;
+    const body = {
+      github_url: githubUrl,
+      force_reclone: forceReclone,
+      skip_ai: false
+    };
+
+    console.log('📡 [cloneAndAnalyze] Fetching:', url);
+    console.log('📦 [cloneAndAnalyze] Body:', body);
+
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+
+      console.log('✅ [cloneAndAnalyze] Response status:', response.status);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ [cloneAndAnalyze] Error response:', errorText);
+        throw new Error(`Failed to clone and analyze: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      console.log('📥 [cloneAndAnalyze] Response data:', data);
+      return data;
+    } catch (error) {
+      console.error('❌ [cloneAndAnalyze] Error:', error);
+      throw new Error(`Failed to fetch: ${error.message}`);
+    }
+  },
+
 };
 
 // Made with Bob

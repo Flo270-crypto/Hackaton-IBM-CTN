@@ -185,7 +185,9 @@ src/
 │   ├── ArchitectureDiagram.jsx # React Flow graph
 │   ├── SmartChecklist.jsx      # Checklist UI
 │   ├── ImpactAnalyzer.jsx      # Impact analysis
-│   └── HistoryTracker.jsx      # Git timeline
+│   ├── HistoryTracker.jsx      # Git timeline
+│   ├── MergeIntelligence.jsx   # Merge conflict detection
+│   └── PushGuardian.jsx        # Pre-push validation
 │
 └── utils/                 # (Optional) Helper functions
     ├── formatDate.js      # Date formatting
